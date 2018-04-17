@@ -17,7 +17,7 @@ while True:
 
     #Push data to a device feature called "Dummy_Sensor"
         value2=random.uniform(1, 10)
-        DAN.push ('Dummy_Sensor', value2,  value2)
+        DAN.push ('Dummy_Sensor', value2)
 
     except Exception as e:
         print(e)
