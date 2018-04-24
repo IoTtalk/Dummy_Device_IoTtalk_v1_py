@@ -1,4 +1,5 @@
-import requests, threading
+import requests
+import threading
 
 from functools import wraps
 

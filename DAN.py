@@ -14,19 +14,18 @@ profile = {
 }
 """
 
+class DANError(Exception):
+    pass
 
 class DAN():
-    def __init__(self, profile, host, mac_addr):
+    def __init__(self, profile=None, host=None, mac_addr=None):
         self.profile = profile
         if host:
             self.csmapi = CSMAPI('http://{host}:9999'.format(host=host))
         else:
-            self.detect_local_ec()
+            self.csmapi = CSMAPI(None)
 
-        if mac_addr:
-            self.mac_addr = mac_addr
-        else:
-            self.mac_addr = DAN.get_mac_addr()
+        self.mac_addr = mac_addr
 
         # for control channel
         self.state = 'SUSPEND'
@@ -71,7 +70,7 @@ class DAN():
             except Exception as e:
                 print ('Control error', e)
 
-    def detect_local_ec(self):
+    def detect_local_server(self):
         import socket
         udp_ip = ''
         udp_port = 17000
@@ -87,7 +86,7 @@ class DAN():
                 self.csmapi.host = 'http://{}:9999'.format(addr[0])
                 break
 
-    def register_device(self):
+    def register_device(self, profile=None, host=None, mac_addr=None):
         """
         profile = {
             'd_name': None,
@@ -97,8 +96,27 @@ class DAN():
             'df_list': ['Acceleration', 'Temperature'],
         }
         """
+        if profile:
+            self.profile = profile
+        elif not self.profile:
+            raise DANError('profile should be given.')
+
+        if host:
+            self.csmapi.host = 'http://{host}:9999'.format(host=host)
+        elif not self.csmapi.host:
+            _input = input('Do you want to search local server? (y/n):')
+            if _input.upper() in ['YES', 'Y']:
+                self.detect_local_server()
+            else:
+                raise DANError('host should be given.')
+
+        if mac_addr:
+            self.mac_addr = mac_addr
+        elif not self.mac_addr:
+            self.mac_addr = DAN.get_mac_addr()
+
         if not self.profile.get('dm_name'):
-            raise Exception('dm_name should be given in profile.')
+            raise DANError('dm_name should be given in profile.')
 
         if not self.profile.get('d_name'):
             self.profile['d_name'] = str(int(random.uniform(1, 100))) + '.' + self.profile['dm_name']
@@ -110,7 +128,7 @@ class DAN():
             self.profile['is_sim'] = False
 
         if not self.profile.get('df_list'):
-            raise Exception('df_list should be given in profile.')
+            raise DANError('df_list should be given in profile.')
 
         print('IoTtalk Server = {}'.format(self.csmapi.host))
         if self.csmapi.register(self.mac_addr, self.profile):
@@ -129,13 +147,14 @@ class DAN():
             print ('Registration failed.')
             return False
 
-    def device_registration_with_retry(self):
+    def device_registration_with_retry(self, profile=None, host=None, mac_addr=None):
 
         while True:
             try:
-                if self.register_device():
+                if self.register_device(profile, host, mac_addr):
                     break
             except Exception as e:
+                # TODO: check error
                 print ('Attach failed: '),
                 print (e)
             time.sleep(1)
@@ -172,8 +191,7 @@ class DAN():
         try:
             alias = self.csmapi.get_alias(self.mac_addr, df_name)
         except Exception as e:
-            # print (e)
-            return None
+            raise DANError(e)
 
         return alias
 
@@ -181,8 +199,7 @@ class DAN():
         try:
             alias = self.csmapi.set_alias(self.mac_addr, df_name, new_alias_name)
         except Exception as e:
-            # print (e)
-            return None
+            raise DANError(e)
 
         return alias
 
