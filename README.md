@@ -1,5 +1,5 @@
 # Dummy_Device
-This is a DA example with ControlChannels.
+This is a DA example with ControlChannels、SSL connection、Device_Auth.
 
 Changes:
 1. Separate sessions into  data and control sessions:
