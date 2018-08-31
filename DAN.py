@@ -162,7 +162,7 @@ class DAN():
     def pull(self, df_name):
         if self.state == 'RESUME':
             data = self.csmapi.pull(self.mac_addr, df_name)
-            if self.pre_data_timestamp.get(df_name) != data[0][0]:
+            if data and self.pre_data_timestamp.get(df_name) != data[0][0]:
                 self.pre_data_timestamp[df_name] = data[0][0]
 
                 if data[0][1]:
@@ -173,7 +173,7 @@ class DAN():
     def pull_with_timestamp(self, df_name):
         if self.state == 'RESUME':
             data = self.csmapi.pull(self.mac_addr, df_name)
-            if self.pre_data_timestamp.get(df_name) != data[0][0]:
+            if data and self.pre_data_timestamp.get(df_name) != data[0][0]:
                 self.pre_data_timestamp[df_name] = data[0][0]
 
                 if data[0][1]:
