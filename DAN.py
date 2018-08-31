@@ -21,7 +21,7 @@ class DAN():
     def __init__(self, profile=None, host=None, mac_addr=None):
         self.profile = profile
         if host:
-            self.csmapi = CSMAPI('http://{host}:9999'.format(host=host))
+            self.csmapi = CSMAPI(host)
         else:
             self.csmapi = CSMAPI(None)
 
@@ -102,7 +102,7 @@ class DAN():
             raise DANError('profile should be given.')
 
         if host:
-            self.csmapi.host = 'http://{host}:9999'.format(host=host)
+            self.csmapi.host = host
         elif not self.csmapi.host:
             _input = input('Do you want to search local server? (y/n):')
             if _input.upper() in ['YES', 'Y']:

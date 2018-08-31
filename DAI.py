@@ -1,6 +1,10 @@
 import time, DAN, requests, random
 
-ServerIP = 'XXX.XXX.XXX.XXX' #Change to your IoTtalk IP or None for autoSearching
+# Change to your IoTtalk IP or None for autoSearching
+# Use (http/https)://(domain/IP)[:port]
+# ex: http://192.168.1.1:9999
+#     https://test.domain
+ServerIP = ''
 Reg_addr = None #None # if None, Reg_addr = MAC address
 
 profile = {
