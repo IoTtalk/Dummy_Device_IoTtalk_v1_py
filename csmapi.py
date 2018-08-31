@@ -48,6 +48,7 @@ class CSMAPI():
         self.TIMEOUT = 10
         self.host = host
         self.session = None
+        self.password = None
 
     @session_wrapper
     def register(self, mac_addr, profile):
@@ -65,6 +66,7 @@ class CSMAPI():
         if response.status_code != 200:
             raise CSMError(response.text)
 
+        self.password = response.json().get('password')
         return True
 
     @session_wrapper
@@ -91,6 +93,7 @@ class CSMAPI():
         response = self.session.put(
             url,
             json={'data': data},
+            headers = {'password-key': self.password},
             timeout=self.TIMEOUT
         )
 
@@ -109,6 +112,7 @@ class CSMAPI():
         )
         response = self.session.get(
             url,
+            headers = {'password-key': self.password},
             timeout=self.TIMEOUT
         )
 
