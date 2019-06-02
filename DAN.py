@@ -1,4 +1,5 @@
-import requests, time, csmapi, random, threading 
+import time, random, threading requests
+import csmapi
 
 # example
 profile = {
