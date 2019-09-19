@@ -10,11 +10,22 @@ profile = {
     'df_list': ['Acceleration', 'Temperature'],
 }
 mac_addr = None
+'''
+範例，建立一個字典
+設定裝置名稱
+使用者名稱
+一個未動用的函數
+裝置狀態名
 
+宣告一個mac位址
+'''
 state = 'SUSPEND'     #for control channel
 #state = 'RESUME'
 
 SelectedDF = []
+'''
+建立一個空的字典
+'''
 def ControlChannel():
     global state, SelectedDF
     print('Device state:', state)
@@ -52,12 +63,30 @@ def ControlChannel():
             else:
                 print('ControlChannel failed due to unknow reasons.')
                 time.sleep(1)    
+'''
+這個叫做控制頻道的function
+宣告兩個全域變數
+引印出裝置狀態
+定義網路請求session
+定義控制頻道的時間戳記
+
+當回傳為真
+每次間隔為兩秒
+嘗試透過mac跟session進行csmapi資料提取
+
+如果取回的資料不為空(還是不為陣列?)則進行下面的一些形況判斷或報錯
+'''
+
 
 def get_mac_addr():
     from uuid import getnode
     mac = getnode()
     mac = ''.join(("%012X" % mac)[i:i+2] for i in range(0, 12, 2))
     return mac
+
+'''
+生成一個mac位址
+'''
 
 def detect_local_ec():
     EASYCONNECT_HOST=None
@@ -75,9 +104,17 @@ def detect_local_ec():
             csmapi.ENDPOINT=EASYCONNECT_HOST
             #print('IoTtalk server = {}'.format(csmapi.ENDPOINT))
 
+'''
+確認本地位址
+'''
+
 timestamp={}
 MAC=get_mac_addr()
 thx=None
+
+'''
+變數的宣告
+'''
 def register_device(addr):
     global MAC, profile, timestamp, thx
 
@@ -98,7 +135,9 @@ def register_device(addr):
         thx.daemon = True                               #for control channel
         thx.start()                                     #for control channel 
 
-
+'''
+註冊此裝置
+'''
 def device_registration_with_retry(URL=None, addr=None):
     if URL != None:
         csmapi.ENDPOINT = URL
@@ -111,7 +150,9 @@ def device_registration_with_retry(URL=None, addr=None):
             print ('Attach failed: '),
             print (e)
         time.sleep(1)
-
+'''
+重試連結
+'''
 def pull(FEATURE_NAME):
     global timestamp
 
@@ -127,12 +168,16 @@ def pull(FEATURE_NAME):
         else: return None
     else:
         return None
-
+'''
+在可繼續狀態下取值
+'''
 def push(FEATURE_NAME, *data):
     if state == 'RESUME':
         return csmapi.push(MAC, FEATURE_NAME, list(data))
     else: return None
-
+'''
+在可繼續狀態下發送list中的資料
+'''
 def get_alias(FEATURE_NAME):
     try:
         alias = csmapi.get_alias(MAC,FEATURE_NAME)
@@ -141,7 +186,9 @@ def get_alias(FEATURE_NAME):
         return None
     else:
         return alias
-
+'''
+取得一個別名
+'''
 def set_alias(FEATURE_NAME, alias):
     try:
         alias = csmapi.set_alias(MAC, FEATURE_NAME, alias)
@@ -150,7 +197,12 @@ def set_alias(FEATURE_NAME, alias):
         return None
     else:
         return alias
-
+'''
+建立別名
+'''
 		
 def deregister():
     return csmapi.deregister(MAC)
+'''
+取消註冊，調用csma裡面的取消註冊功能
+'''
