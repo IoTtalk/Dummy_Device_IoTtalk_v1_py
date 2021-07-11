@@ -1,5 +1,5 @@
 # Dummy_Device
-# Before using this example, please successfully install the python module 'requests'.
+# Before using this example, please install the python module 'requests' correctly.
 
 This is a DA example with ControlChannels、SSL connection、Device_Auth.
 
