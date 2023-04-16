@@ -1,9 +1,11 @@
 import random 
 
-ServerURL = 'https://iottalk.tw'
-MQTT_broker = 'iottalk.tw'
-MQTT_port = 5566 
-MQTT_encryption = True
+ServerURL = 'IoTtalk server url' #For example: 'https://iottalk.tw'
+MQTT_broker = None # MQTT Broker address, for example:  'iottalk.tw' or None = no MQTT support
+MQTT_port = 1883
+MQTT_encryption = False
+MQTT_User = 'User'
+MQTT_PW = 'PW'
 
 device_model = 'Dummy_Device'
 IDF_list = ['Dummy_Sensor']

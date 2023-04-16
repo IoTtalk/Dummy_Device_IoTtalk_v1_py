@@ -20,7 +20,7 @@ def on_connect(client, userdata, flags, rc):
         
 def on_disconnect(client, userdata,  rc):
     print('MQTT Disconnected. Re-connect...')
-    client.connect(SA.MQTT_broker, 5566, keepalive=60)
+    client.connect(SA.MQTT_broker, SA.MQTT_port, keepalive=60)
 
 def on_message(client, userdata, msg):
     samples = json.loads(msg.payload)
@@ -52,7 +52,7 @@ on_register(result)
 
 if SA.MQTT_broker:
     mqttc = mqtt.Client()
-    mqttc.username_pw_set('iottalk','iottalk2023')
+    mqttc.username_pw_set(SA.MQTT_User, SA.MQTT_PW)
     mqttc.on_connect = on_connect    
     mqttc.on_message = on_message
     mqttc.on_disconnect = on_disconnect
