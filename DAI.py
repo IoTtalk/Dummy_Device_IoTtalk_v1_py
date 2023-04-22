@@ -41,6 +41,18 @@ def on_register(result):
     if SA.MQTT_broker: result['MQTT_broker'] = SA.MQTT_broker
     SA.on_register(result)
 
+if SA.MQTT_broker:
+    mqttc = mqtt.Client()
+    mqttc.username_pw_set(SA.MQTT_User, SA.MQTT_PW)
+    mqttc.on_connect = on_connect
+    mqttc.on_message = on_message
+    mqttc.on_disconnect = on_disconnect
+    if SA.MQTT_encryption: mqttc.tls_set()
+    mqttc.connect(SA.MQTT_broker, SA.MQTT_port, keepalive=60)
+    qt = threading.Thread(target=mqttc.loop_forever)
+    qt.daemon = True
+    qt.start()
+    time.sleep(1)
 
 DAN.profile['dm_name'] = SA.device_model
 DAN.profile['df_list'] = SA.IDF_list + SA.ODF_list
@@ -49,18 +61,6 @@ if SA.MQTT_broker: DAN.profile['mqtt_enable'] = True
 
 result = DAN.device_registration_with_retry(SA.ServerURL, SA.device_id)
 on_register(result)
-
-if SA.MQTT_broker:
-    mqttc = mqtt.Client()
-    mqttc.username_pw_set(SA.MQTT_User, SA.MQTT_PW)
-    mqttc.on_connect = on_connect    
-    mqttc.on_message = on_message
-    mqttc.on_disconnect = on_disconnect
-    if SA.MQTT_encryption: mqttc.tls_set() 
-    mqttc.connect(SA.MQTT_broker, SA.MQTT_port, keepalive=60)
-    qt = threading.Thread(target=mqttc.loop_forever)
-    qt.daemon = True
-    qt.start()
 
 while True:
     try:
