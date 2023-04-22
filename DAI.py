@@ -3,7 +3,6 @@ from datetime import datetime
 import paho.mqtt.client as mqtt
 import DAN, SA
 
-
 def df_func_name(df_name):
     return re.sub(r'-', r'_', df_name)
 
@@ -41,15 +40,6 @@ def on_register(result):
     if SA.MQTT_broker: result['MQTT_broker'] = SA.MQTT_broker
     SA.on_register(result)
 
-
-DAN.profile['dm_name'] = SA.device_model
-DAN.profile['df_list'] = SA.IDF_list + SA.ODF_list
-if SA.device_name: DAN.profile['d_name']= SA.device_name
-if SA.MQTT_broker: DAN.profile['mqtt_enable'] = True
-
-result = DAN.device_registration_with_retry(SA.ServerURL, SA.device_id)
-on_register(result)
-
 if SA.MQTT_broker:
     mqttc = mqtt.Client()
     mqttc.username_pw_set(SA.MQTT_User, SA.MQTT_PW)
@@ -61,6 +51,15 @@ if SA.MQTT_broker:
     qt = threading.Thread(target=mqttc.loop_forever)
     qt.daemon = True
     qt.start()
+    time.sleep(1)
+    
+DAN.profile['dm_name'] = SA.device_model
+DAN.profile['df_list'] = SA.IDF_list + SA.ODF_list
+if SA.device_name: DAN.profile['d_name']= SA.device_name
+if SA.MQTT_broker: DAN.profile['mqtt_enable'] = True
+
+result = DAN.device_registration_with_retry(SA.ServerURL, SA.device_id)
+on_register(result)
 
 while True:
     try:
