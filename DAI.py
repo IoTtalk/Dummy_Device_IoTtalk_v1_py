@@ -13,8 +13,9 @@ def on_connect(client, userdata, flags, rc):
         for odf in SA.ODF_list:
             topic = '{}//{}'.format(SA.device_id, odf)
             topic_list.append((topic,0))
-        r = client.subscribe(topic_list)
-        if r[0]: print('Failed to subscribe topics. Error code:{}'.format(r))
+        if topic_list != []:
+            r = client.subscribe(topic_list)
+            if r[0]: print('Failed to subscribe topics. Error code:{}'.format(r))
     else: print('Connect to MQTT borker failed. Error code:{}'.format(rc))
         
 def on_disconnect(client, userdata,  rc):
@@ -40,14 +41,17 @@ def on_register(result):
     if SA.MQTT_broker: result['MQTT_broker'] = SA.MQTT_broker
     SA.on_register(result)
 
+def MQTT_config(client):
+    client.username_pw_set(SA.MQTT_User, SA.MQTT_PW)
+    client.on_connect = on_connect
+    client.on_message = on_message
+    client.on_disconnect = on_disconnect
+    if SA.MQTT_encryption: client.tls_set()
+    client.connect(SA.MQTT_broker, SA.MQTT_port, keepalive=60)
+
 if SA.MQTT_broker:
     mqttc = mqtt.Client()
-    mqttc.username_pw_set(SA.MQTT_User, SA.MQTT_PW)
-    mqttc.on_connect = on_connect    
-    mqttc.on_message = on_message
-    mqttc.on_disconnect = on_disconnect
-    if SA.MQTT_encryption: mqttc.tls_set() 
-    mqttc.connect(SA.MQTT_broker, SA.MQTT_port, keepalive=60)
+    MQTT_config(mqttc)
     qt = threading.Thread(target=mqttc.loop_forever)
     qt.daemon = True
     qt.start()
@@ -71,6 +75,7 @@ while True:
             if type(IDF_data) is not tuple: IDF_data=[IDF_data]
             if SA.MQTT_broker: mqtt_pub(mqttc, SA.device_id, idf, IDF_data)
             else: DAN.push(idf, IDF_data)
+            time.sleep(0.001)
 
         if not SA.MQTT_broker: 
             for odf in SA.ODF_list:
@@ -78,6 +83,7 @@ while True:
                 ODF_data = DAN.pull(odf)
                 if not ODF_data: continue
                 ODF_func(ODF_data)
+                time.sleep(0.001)
 
     except Exception as e:
         print(e)
