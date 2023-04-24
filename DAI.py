@@ -1,4 +1,4 @@
-import re, time, json, threading, requests
+import re, time, json, threading, requests, traceback
 from datetime import datetime
 import paho.mqtt.client as mqtt
 import DAN, SA
@@ -6,12 +6,36 @@ import DAN, SA
 def df_func_name(df_name):
     return re.sub(r'-', r'_', df_name)
 
+MQTT_broker = getattr(SA,'MQTT_broker', None)
+MQTT_port = getattr(SA,'MQTT_port', 1883)
+MQTT_User = getattr(SA,'MQTT_User', None)
+MQTT_PW = getattr(SA,'MQTT_PW', None)
+MQTT_encryption = getattr(SA,'MQTT_encryption', None)
+device_model = getattr(SA,'device_model', None)
+device_name = getattr(SA,'device_name', None)
+ServerURL = getattr(SA,'ServerURL', None)
+device_id = getattr(SA,'device_id', None)
+IDF_list = getattr(SA,'IDF_list', [])
+ODF_list = getattr(SA,'ODF_list', [])
+exec_interval = getattr(SA,'exec_interval', 1)
+IDF_funcs = {}
+for idf in IDF_list:
+    IDF_funcs[idf] = getattr(SA, df_func_name(idf), None)
+ODF_funcs = {}
+for odf in ODF_list:
+    ODF_funcs[odf] = getattr(SA, df_func_name(odf), None)
+
+
+
 def on_connect(client, userdata, flags, rc):
     if not rc:
-        print('MQTT broker: {}'.format(SA.MQTT_broker))
+        print('MQTT broker: {}'.format(MQTT_broker))
+        if not ODF_list:
+            print('ODF_list is not exist.')
+            return
         topic_list=[]
-        for odf in SA.ODF_list:
-            topic = '{}//{}'.format(SA.device_id, odf)
+        for odf in ODF_list:
+            topic = '{}//{}'.format(device_id, odf)
             topic_list.append((topic,0))
         if topic_list != []:
             r = client.subscribe(topic_list)
@@ -20,15 +44,14 @@ def on_connect(client, userdata, flags, rc):
         
 def on_disconnect(client, userdata,  rc):
     print('MQTT Disconnected. Re-connect...')
-    client.connect(SA.MQTT_broker, SA.MQTT_port, keepalive=60)
+    client.connect(MQTT_broker, MQTT_port, keepalive=60)
 
 def on_message(client, userdata, msg):
     samples = json.loads(msg.payload)
     ODF_name = msg.topic.split('//')[1]
-    ODF_func = getattr(SA, df_func_name(ODF_name), None)
-    if ODF_func:
+    if ODF_funcs.get(ODF_name):
         ODF_data = samples['samples'][0][1]
-        ODF_func(ODF_data)
+        ODF_funcs[ODF_name](ODF_data)
 
 def mqtt_pub(client, deviceId, IDF, data):
     topic = '{}//{}'.format(deviceId, IDF)
@@ -38,61 +61,62 @@ def mqtt_pub(client, deviceId, IDF, data):
     if status[0]: print('topic:{}, status:{}'.format(topic, status))
 
 def on_register(result):
-    if SA.MQTT_broker: result['MQTT_broker'] = SA.MQTT_broker
+    if MQTT_broker: result['MQTT_broker'] = MQTT_broker
     SA.on_register(result)
 
 def MQTT_config(client):
-    client.username_pw_set(SA.MQTT_User, SA.MQTT_PW)
+    client.username_pw_set(MQTT_User, MQTT_PW)
     client.on_connect = on_connect
     client.on_message = on_message
     client.on_disconnect = on_disconnect
-    if SA.MQTT_encryption: client.tls_set()
-    client.connect(SA.MQTT_broker, SA.MQTT_port, keepalive=60)
+    if MQTT_encryption: client.tls_set()
+    client.connect(MQTT_broker, MQTT_port, keepalive=60)
 
-if SA.MQTT_broker:
-    mqttc = mqtt.Client()
-    MQTT_config(mqttc)
-    qt = threading.Thread(target=mqttc.loop_forever)
+if MQTT_broker:
+    mqttc_pub = mqtt.Client()
+    MQTT_config(mqttc_pub)
+    mqttc_sub = mqtt.Client()
+    MQTT_config(mqttc_sub)
+    qt = threading.Thread(target=mqttc_sub.loop_forever)
     qt.daemon = True
     qt.start()
     time.sleep(1)
     
-DAN.profile['dm_name'] = SA.device_model
-DAN.profile['df_list'] = SA.IDF_list + SA.ODF_list
-if SA.device_name: DAN.profile['d_name']= SA.device_name
-if SA.MQTT_broker: DAN.profile['mqtt_enable'] = True
+DAN.profile['dm_name'] = device_model
+DAN.profile['df_list'] = IDF_list + ODF_list  
+if device_name: DAN.profile['d_name']= device_name
+if MQTT_broker: DAN.profile['mqtt_enable'] = True
 
-result = DAN.device_registration_with_retry(SA.ServerURL, SA.device_id)
+result = DAN.device_registration_with_retry(ServerURL, device_id)
 on_register(result)
 
 while True:
     try:
-        for idf in SA.IDF_list:
-            IDF_func = getattr(SA, df_func_name(idf), None)
-            if not IDF_func: continue
-            IDF_data = IDF_func()
+        for idf in IDF_list:
+            if not IDF_funcs.get(idf): continue
+            IDF_data = IDF_funcs.get(idf)()
             if not IDF_data: continue
             if type(IDF_data) is not tuple: IDF_data=[IDF_data]
-            if SA.MQTT_broker: mqtt_pub(mqttc, SA.device_id, idf, IDF_data)
+            if MQTT_broker: mqtt_pub(mqttc_pub, device_id, idf, IDF_data)
             else: DAN.push(idf, IDF_data)
             time.sleep(0.001)
 
-        if not SA.MQTT_broker: 
-            for odf in SA.ODF_list:
-                ODF_func = getattr(SA, df_func_name(odf), None)
+        if not MQTT_broker: 
+            for odf in ODF_list:
+                if not ODF_funcs.get(odf): continue
                 ODF_data = DAN.pull(odf)
                 if not ODF_data: continue
-                ODF_func(ODF_data)
+                ODF_funcs.get(odf)(ODF_data)
                 time.sleep(0.001)
 
     except Exception as e:
-        print(e)
         if str(e).find('mac_addr not found:') != -1:
             print('Reg_addr is not found. Try to re-register...')
-            DAN.device_registration_with_retry(SA.ServerURL, SA.device_id)
+            DAN.device_registration_with_retry(ServerURL, device_id)
         else:
-            print('Connection failed due to unknow reasons.')
+            exception = traceback.format_exc()
+            print(exception)
             time.sleep(1)    
 
-    time.sleep(SA.exec_interval)
+    time.sleep(exec_interval)
 
