@@ -25,12 +25,10 @@ ODF_funcs = {}
 for odf in ODF_list:
     ODF_funcs[odf] = getattr(SA, df_func_name(odf), None)
 
-
-
 def on_connect(client, userdata, flags, rc):
     if not rc:
         print('MQTT broker: {}'.format(MQTT_broker))
-        if not ODF_list:
+        if ODF_list == []:
             print('ODF_list is not exist.')
             return
         topic_list=[]
@@ -52,6 +50,8 @@ def on_message(client, userdata, msg):
     if ODF_funcs.get(ODF_name):
         ODF_data = samples['samples'][0][1]
         ODF_funcs[ODF_name](ODF_data)
+    else:
+        print('ODF function "{}" is not existed.'.format(ODF_name))
 
 def mqtt_pub(client, deviceId, IDF, data):
     topic = '{}//{}'.format(deviceId, IDF)
@@ -61,8 +61,8 @@ def mqtt_pub(client, deviceId, IDF, data):
     if status[0]: print('topic:{}, status:{}'.format(topic, status))
 
 def on_register(result):
-    if MQTT_broker: result['MQTT_broker'] = MQTT_broker
-    SA.on_register(result)
+    func = getattr(SA, 'on_register', None)
+    if func: func(result)
 
 def MQTT_config(client):
     client.username_pw_set(MQTT_User, MQTT_PW)
@@ -93,7 +93,9 @@ on_register(result)
 while True:
     try:
         for idf in IDF_list:
-            if not IDF_funcs.get(idf): continue
+            if not IDF_funcs.get(idf): 
+                print('IDF function "{}" is not existed.'.format(idf))
+                continue
             IDF_data = IDF_funcs.get(idf)()
             if not IDF_data: continue
             if type(IDF_data) is not tuple: IDF_data=[IDF_data]
@@ -103,7 +105,9 @@ while True:
 
         if not MQTT_broker: 
             for odf in ODF_list:
-                if not ODF_funcs.get(odf): continue
+                if not ODF_funcs.get(odf): 
+                    print('ODF function "{}" is not existed.'.format(odf))
+                    continue
                 ODF_data = DAN.pull(odf)
                 if not ODF_data: continue
                 ODF_funcs.get(odf)(ODF_data)
