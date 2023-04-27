@@ -42,7 +42,7 @@ def on_connect(client, userdata, flags, rc):
         
 def on_disconnect(client, userdata,  rc):
     print('MQTT Disconnected. Re-connect...')
-    client.connect(MQTT_broker, MQTT_port, keepalive=60)
+    client.reconnect()
 
 def on_message(client, userdata, msg):
     samples = json.loads(msg.payload)
@@ -72,16 +72,6 @@ def MQTT_config(client):
     if MQTT_encryption: client.tls_set()
     client.connect(MQTT_broker, MQTT_port, keepalive=60)
 
-if MQTT_broker:
-    mqttc_pub = mqtt.Client()
-    MQTT_config(mqttc_pub)
-    mqttc_sub = mqtt.Client()
-    MQTT_config(mqttc_sub)
-    qt = threading.Thread(target=mqttc_sub.loop_forever)
-    qt.daemon = True
-    qt.start()
-    time.sleep(1)
-    
 DAN.profile['dm_name'] = device_model
 DAN.profile['df_list'] = IDF_list + ODF_list  
 if device_name: DAN.profile['d_name']= device_name
@@ -89,6 +79,11 @@ if MQTT_broker: DAN.profile['mqtt_enable'] = True
 
 result = DAN.device_registration_with_retry(ServerURL, device_id)
 on_register(result)
+
+if MQTT_broker:
+    mqttc = mqtt.Client()
+    MQTT_config(mqttc)
+    mqttc.loop_start()
 
 while True:
     try:
@@ -99,7 +94,7 @@ while True:
             IDF_data = IDF_funcs.get(idf)()
             if not IDF_data: continue
             if type(IDF_data) is not tuple: IDF_data=[IDF_data]
-            if MQTT_broker: mqtt_pub(mqttc_pub, device_id, idf, IDF_data)
+            if MQTT_broker: mqtt_pub(mqttc, device_id, idf, IDF_data)
             else: DAN.push(idf, IDF_data)
             time.sleep(0.001)
 
@@ -119,6 +114,7 @@ while True:
             DAN.device_registration_with_retry(ServerURL, device_id)
         else:
             exception = traceback.format_exc()
+            mqttc.reconnect()
             print(exception)
             time.sleep(1)    
 
