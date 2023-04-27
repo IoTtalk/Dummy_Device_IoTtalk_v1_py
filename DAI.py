@@ -114,8 +114,8 @@ while True:
             DAN.device_registration_with_retry(ServerURL, device_id)
         else:
             exception = traceback.format_exc()
-            if MQTT_broker: mqttc.reconnect()
             print(exception)
+            if MQTT_broker: mqttc.reconnect()
             time.sleep(1)    
 
     time.sleep(exec_interval)
