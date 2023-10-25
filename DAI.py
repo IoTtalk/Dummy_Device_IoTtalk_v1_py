@@ -86,38 +86,44 @@ if MQTT_broker:
     MQTT_config(mqttc)
     mqttc.loop_start()
 
-while True:
-    try:
+def DF_function_habdler():
+    while True:
         for idf in IDF_list:
             if not IDF_funcs.get(idf): 
                 print('IDF function "{}" is not existed.'.format(idf))
                 continue
             IDF_data = IDF_funcs.get(idf)()
-            if IDF_data == 'None': continue
+            if IDF_data == None: continue
             if type(IDF_data) is not tuple: IDF_data=[IDF_data]
             if MQTT_broker: mqtt_pub(mqttc, device_id, idf, IDF_data)
             else: DAN.push(idf, IDF_data)
             time.sleep(0.001)
-
         if not MQTT_broker: 
             for odf in ODF_list:
                 if not ODF_funcs.get(odf): 
                     print('ODF function "{}" is not existed.'.format(odf))
                     continue
                 ODF_data = DAN.pull(odf)
-                if ODF_data == 'None': continue
+                if ODF_data == None: continue
                 ODF_funcs.get(odf)(ODF_data)
                 time.sleep(0.001)
+        time.sleep(exec_interval)
 
-    except Exception as e:
-        if str(e).find('mac_addr not found:') != -1:
-            print('Reg_addr is not found. Try to re-register...')
-            DAN.device_registration_with_retry(ServerURL, device_id)
-        else:
-            exception = traceback.format_exc()
-            print(exception)
-            if MQTT_broker: mqttc.reconnect()
-            time.sleep(1)    
+def ExceptionEventHandler(err):
+    if isinstance(err, KeyboardInterrupt):
+        DAN.deregister()
+        print('Bye~')
+    elif str(err).find('mac_addr not found:') != -1:
+        print('Reg_addr is not found. Try to re-register...')
+        DAN.device_registration_with_retry(ServerURL, device_id)
+    else:
+        exception = traceback.format_exc()
+        if MQTT_broker: mqttc.reconnect()
+        time.sleep(1)    
 
-    time.sleep(exec_interval)
 
+if __name__ == '__main__':
+    try:
+        DF_function_habdler()
+    except BaseException as err:
+        ExceptionEventHandler(err)
