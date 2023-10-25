@@ -93,7 +93,7 @@ while True:
                 print('IDF function "{}" is not existed.'.format(idf))
                 continue
             IDF_data = IDF_funcs.get(idf)()
-            if not IDF_data: continue
+            if IDF_data == 'None': continue
             if type(IDF_data) is not tuple: IDF_data=[IDF_data]
             if MQTT_broker: mqtt_pub(mqttc, device_id, idf, IDF_data)
             else: DAN.push(idf, IDF_data)
