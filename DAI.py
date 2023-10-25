@@ -86,7 +86,7 @@ if MQTT_broker:
     MQTT_config(mqttc)
     mqttc.loop_start()
 
-def DF_function_habdler():
+def DF_function_handler():
     while True:
         for idf in IDF_list:
             if not IDF_funcs.get(idf): 
@@ -124,6 +124,6 @@ def ExceptionEventHandler(err):
 
 if __name__ == '__main__':
     try:
-        DF_function_habdler()
+        DF_function_handler()
     except BaseException as err:
         ExceptionEventHandler(err)
