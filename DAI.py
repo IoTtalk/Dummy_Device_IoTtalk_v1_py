@@ -112,18 +112,20 @@ def DF_function_handler():
 def ExceptionEventHandler(err):
     if isinstance(err, KeyboardInterrupt):
         DAN.deregister()
-        print('Bye~')
+        print(' Bye~')
+        exit()
     elif str(err).find('mac_addr not found:') != -1:
         print('Reg_addr is not found. Try to re-register...')
         DAN.device_registration_with_retry(ServerURL, device_id)
     else:
         exception = traceback.format_exc()
-        if MQTT_broker: mqttc.reconnect()
+        print(exception)
         time.sleep(1)    
-
+    if MQTT_broker: mqttc.reconnect()
 
 if __name__ == '__main__':
-    try:
-        DF_function_handler()
-    except BaseException as err:
-        ExceptionEventHandler(err)
+    while True:
+        try:
+            DF_function_handler()
+        except BaseException as err:
+            ExceptionEventHandler(err)
