@@ -105,7 +105,7 @@ while True:
                     print('ODF function "{}" is not existed.'.format(odf))
                     continue
                 ODF_data = DAN.pull(odf)
-                if not ODF_data: continue
+                if ODF_data == 'None': continue
                 ODF_funcs.get(odf)(ODF_data)
                 time.sleep(0.001)
 
