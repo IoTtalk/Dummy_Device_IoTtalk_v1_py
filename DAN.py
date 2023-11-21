@@ -85,7 +85,7 @@ def register_device(addr):
     for i in profile['df_list']: timestamp[i] = ''
     profile['d_name'] = csmapi.register(MAC,profile)
          
-    if thx:# == None:
+    if thx == None:
         print ('Create control threading')
         thx=threading.Thread(target=ControlChannel)     #for control channel
         thx.daemon = True                               #for control channel
