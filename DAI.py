@@ -1,7 +1,11 @@
-import re, time, json, threading, requests, traceback
+import re, time, json, threading, requests, traceback, sys, importlib
 from datetime import datetime
 import paho.mqtt.client as mqtt
-import DAN, SA
+import DAN
+
+SA_module_name = 'SA'
+if len(sys.argv)>1: SA_module_name = ((sys.argv[1]).split('.'))[0]
+SA = importlib.import_module(SA_module_name)
 
 def df_func_name(df_name):
     return re.sub(r'-', r'_', df_name)
@@ -27,7 +31,9 @@ for odf in ODF_list:
     ODF_funcs[odf] = getattr(SA, df_func_name(odf), None)
 
 def on_connect(client, userdata, flags, rc):
+    global DISCONNECT
     if not rc:
+        if DISCONNECT: DISCONNECT = False
         print('MQTT broker: {}'.format(MQTT_broker))
         if ODF_list == []:
             print('ODF_list is not exist.')
@@ -40,10 +46,13 @@ def on_connect(client, userdata, flags, rc):
             r = client.subscribe(topic_list)
             if r[0]: print('Failed to subscribe topics. Error code:{}'.format(r))
     else: print('Connect to MQTT borker failed. Error code:{}'.format(rc))
-        
+
+DISCONNECT = False
 def on_disconnect(client, userdata,  rc):
-    print('MQTT Disconnected. Re-connect...')
-    client.reconnect()
+    global DISCONNECT
+    print('MQTT Disconnected.')
+    DISCONNECT = True
+    #client.reconnect()
 
 def on_message(client, userdata, msg):
     samples = json.loads(msg.payload)
@@ -107,6 +116,14 @@ def DF_function_handler():
             ODF_funcs.get(odf)(ODF_data)
             time.sleep(0.001)
 
+def reconnect(client):
+    client.disconnect()
+    client.loop_stop()
+    time.sleep(0.5)
+    client.reconnect()
+    client.loop_start()
+    time.sleep(0.5)
+
 def ExceptionHandler(err):
     if isinstance(err, KeyboardInterrupt):
         DAN.deregister()
@@ -119,11 +136,13 @@ def ExceptionHandler(err):
         exception = traceback.format_exc()
         print(exception)
         time.sleep(1)    
-    if MQTT_broker: mqttc.reconnect()
+    if MQTT_broker: reconnect(mqttc) 
+
 
 if __name__ == '__main__':
     while True:
         try:
+            if DISCONNECT: reconnect(mqttc)
             DF_function_handler()
             time.sleep(exec_interval)
         except BaseException as err:
