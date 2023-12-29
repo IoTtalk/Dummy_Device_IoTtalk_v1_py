@@ -120,7 +120,7 @@ def reconnect(client):
     client.disconnect()
     client.loop_stop()
     time.sleep(0.5)
-    print(MQTT reconnect...)
+    print('MQTT reconnect...')
     client.reconnect()
     client.loop_start()
     time.sleep(0.5)
