@@ -128,7 +128,6 @@ def reconnect(client):
             break
         except BaseException as err:
             ExceptionHandler(err)
-
     client.loop_start()
     time.sleep(0.5)
 
