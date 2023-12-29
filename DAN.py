@@ -1,3 +1,4 @@
+from datetime import datetime as dt
 import time, threading, requests
 import csmapi
 
@@ -16,7 +17,7 @@ state = 'RESUME'
 SelectedDF = []
 def ControlChannel():
     global state, SelectedDF
-    print('Device state:', state)
+    print('[{}] Device state: {}'.format(dt.now().strftime('%Y-%m-%d %H:%M:%S'), state))
     NewSession=requests.Session()
     control_channel_timestamp = None
     while True:
@@ -28,10 +29,10 @@ def ControlChannel():
                 control_channel_timestamp = CH[0][0]
                 cmd = CH[0][1][0]
                 if cmd == 'RESUME':  
-                    print('Device state: RESUME.') 
+                    print('[{}] Device state: RESUME.'.format(dt.now().strftime('%Y-%m-%d %H:%M:%S'))) 
                     state = 'RESUME'
                 elif cmd == 'SUSPEND': 
-                    print('Device state: SUSPEND.') 
+                    print('[{}] Device state: SUSPEND.'.format(dt.now().strftime('%Y-%m-%d %H:%M:%S'))) 
                     state = 'SUSPEND'
                 elif cmd == 'SET_DF_STATUS':
                     csmapi.push(MAC,'__Ctl_I__',['SET_DF_STATUS_RSP',{'cmd_params':CH[0][1][1]['cmd_params']}], NewSession)
@@ -44,12 +45,11 @@ def ControlChannel():
                             SelectedDF.append(profile['df_list'][index])
                         index=index+1
         except Exception as e:
-            print ('Control error:', e)
+            print ('[{}] Control CH err: {}'.format(dt.now().strftime('%Y-%m-%d %H:%M:%S'), e))
             if str(e).find('mac_addr not found:') != -1:
                 print('Reg_addr is not found. Try to re-register...')
                 device_registration_with_retry()
             else:
-                print('ControlChannel failed due to unknow reasons.')
                 time.sleep(1)    
 
 def get_mac_addr():
@@ -86,7 +86,7 @@ def register_device(addr):
     profile['d_name'] = csmapi.register(MAC,profile)
          
     if thx == None:
-        print ('Create control threading')
+        print ('[{}] Create control threading'.format(dt.now().strftime('%Y-%m-%d %H:%M:%S')))
         thx=threading.Thread(target=ControlChannel)     #for control channel
         thx.daemon = True                               #for control channel
         thx.start()                                     #for control channel 

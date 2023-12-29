@@ -1,5 +1,5 @@
 import re, time, json, threading, requests, traceback, sys, importlib
-from datetime import datetime
+from datetime import datetime as dt
 import paho.mqtt.client as mqtt
 import DAN
 
@@ -34,7 +34,7 @@ def on_connect(client, userdata, flags, rc):
     global DISCONNECT
     if not rc:
         if DISCONNECT: DISCONNECT = False
-        print('MQTT broker: {}'.format(MQTT_broker))
+        print('[{}] MQTT broker: {}'.format(dt.now().strftime('%Y-%m-%d %H:%M:%S'), MQTT_broker))
         if ODF_list == []:
             print('ODF_list is not exist.')
             return
@@ -50,7 +50,7 @@ def on_connect(client, userdata, flags, rc):
 DISCONNECT = False
 def on_disconnect(client, userdata,  rc):
     global DISCONNECT
-    print('MQTT Disconnected.')
+    print('[{}] MQTT disconnected.'.format(dt.now().strftime('%Y-%m-%d %H:%M:%S')))
     DISCONNECT = True
     #client.reconnect()
 
@@ -65,13 +65,15 @@ def on_message(client, userdata, msg):
 
 def mqtt_pub(client, deviceId, IDF, data):
     topic = '{}//{}'.format(deviceId, IDF)
-    sample = [str(datetime.today()), data]
+    sample = [str(dt.today()), data]
     payload  = json.dumps({'samples':[sample]})
     status = client.publish(topic, payload)
-    if status[0]: print('topic:{}, status:{}'.format(topic, status))
+    if status[0]: print('[{}] Failed in pub: topic:{}, status:{}'.format(dt.now().strftime('%Y-%m-%d %H:%M:%S'), topic, status))
 
 def on_register(result):
     func = getattr(SA, 'on_register', None)
+    print('[{}] Register successfully.'.format(dt.now().strftime('%Y-%m-%d %H:%M:%S')))
+    time.sleep(0.3)
     if func: func(result)
 
 def MQTT_config(client):
@@ -88,13 +90,12 @@ if device_name: DAN.profile['d_name']= device_name
 if MQTT_broker: DAN.profile['mqtt_enable'] = True
 
 result = DAN.device_registration_with_retry(ServerURL, device_id)
-on_register(result)
-
 if MQTT_broker:
     mqttc = mqtt.Client()
     MQTT_config(mqttc)
     mqttc.loop_start()
-
+on_register(result)
+    
 def DF_function_handler():
     for idf in IDF_list:
         if not IDF_funcs.get(idf): 
@@ -120,8 +121,14 @@ def reconnect(client):
     client.disconnect()
     client.loop_stop()
     time.sleep(0.5)
-    print('MQTT reconnect...')
-    client.reconnect()
+    print('[{}] MQTT reconnect...'.format(dt.now().strftime('%Y-%m-%d %H:%M:%S')))
+    while True:
+        try:
+            client.reconnect()
+            break
+        except BaseException as err:
+            ExceptionHandler(err)
+
     client.loop_start()
     time.sleep(0.5)
 
@@ -137,7 +144,7 @@ def ExceptionHandler(err):
         exception = traceback.format_exc()
         print(exception)
         time.sleep(1)    
-    if MQTT_broker: reconnect(mqttc) 
+
 
 
 if __name__ == '__main__':
