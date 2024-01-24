@@ -70,9 +70,20 @@ def mqtt_pub(client, deviceId, IDF, data):
     status = client.publish(topic, payload)
     if status[0]: print('[{}] Failed in pub: topic:{}, status:{}'.format(dt.now().strftime('%Y-%m-%d %H:%M:%S'), topic, status))
 
+def check_df_funcs_exist(IDF_list, ODF_list):
+    print('\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    for idf in IDF_list:
+        if not IDF_funcs.get(idf):
+            print('IDF function "{}" is not existed.'.format(idf))
+    for odf in ODF_list:
+        if not ODF_funcs.get(odf):
+            print('ODF function "{}" is not existed.'.format(odf))
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n')
+
 def on_register(result):
     func = getattr(SA, 'on_register', None)
     print('[{}] Register successfully.'.format(dt.now().strftime('%Y-%m-%d %H:%M:%S')))
+    check_df_funcs_exist(IDF_list, ODF_list)
     time.sleep(0.3)
     if func: func(result)
 
@@ -95,12 +106,16 @@ if MQTT_broker:
     MQTT_config(mqttc)
     mqttc.loop_start()
 on_register(result)
-    
+
+def push(idf, IDF_data):
+    if MQTT_broker:
+        mqtt_pub(mqttc, device_id, idf, IDF_data)
+    else: 
+        DAN.push(idf, IDF_data)
+
 def DF_function_handler():
     for idf in IDF_list:
-        if not IDF_funcs.get(idf): 
-            print('IDF function "{}" is not existed.'.format(idf))
-            continue
+        if not IDF_funcs.get(idf): continue
         IDF_data = IDF_funcs.get(idf)()
         if IDF_data == None: continue
         if type(IDF_data) is not tuple: IDF_data=[IDF_data]
@@ -109,9 +124,7 @@ def DF_function_handler():
         time.sleep(0.001)
     if not MQTT_broker: 
         for odf in ODF_list:
-            if not ODF_funcs.get(odf): 
-                print('ODF function "{}" is not existed.'.format(odf))
-                continue
+            if not ODF_funcs.get(odf): continue
             ODF_data = DAN.pull(odf)
             if ODF_data == None: continue
             ODF_funcs.get(odf)(ODF_data)
