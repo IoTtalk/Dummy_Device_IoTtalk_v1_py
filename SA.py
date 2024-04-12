@@ -22,3 +22,10 @@ def Dummy_Sensor():
 
 def Dummy_Control(data:list):
     print(data[0])
+
+SA_routine = False
+def SA_routine_process():
+    import time, DAI
+    while True:
+        DAI.push('Dummy_Sensor', [100, 200])  
+        time.sleep(exec_interval)
