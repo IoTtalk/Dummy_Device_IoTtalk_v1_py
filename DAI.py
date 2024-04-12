@@ -1,6 +1,7 @@
 import re, time, json, threading, requests, traceback, sys, importlib
 from datetime import datetime as dt
 import paho.mqtt.client as mqtt
+import paho.mqtt.publish as publish
 
 def df_func_name(df_name):
     return re.sub(r'-', r'_', df_name)
@@ -53,7 +54,7 @@ def on_register(result):
     time.sleep(0.3)
     if func: func(result)
 
-def MQTT_config(client):
+def MQTT_config(client, MQTT_broker, MQTT_port, MQTT_User, MQTT_PW, MQTT_encryption):
     client.username_pw_set(MQTT_User, MQTT_PW)
     client.on_connect = on_connect
     client.on_message = on_message
@@ -62,12 +63,22 @@ def MQTT_config(client):
     client.connect(MQTT_broker, MQTT_port, keepalive=60)
 
 def push(idf, IDF_data):
+    MQTT_broker = getattr(SA,'MQTT_broker', None)
     if MQTT_broker:
+        MQTT_port = getattr(SA,'MQTT_port', 1883)
+        MQTT_User = getattr(SA,'MQTT_User', None)
+        MQTT_PW = getattr(SA,'MQTT_PW', None)
+        MQTT_encryption = getattr(SA,'MQTT_encryption', None)
+        device_id = getattr(SA,'device_id', None)
+        if device_id==None: device_id = DAN.get_mac_addr()
+        mqttc = mqtt.Client()
+        MQTT_config(mqttc, MQTT_broker, MQTT_port, MQTT_User, MQTT_PW, MQTT_encryption)
+        if type(IDF_data) is not tuple and type(IDF_data) is not list  : IDF_data=[IDF_data]
         mqtt_pub(mqttc, device_id, idf, IDF_data)
     else: 
         DAN.push(idf, IDF_data)
 
-def DF_function_handler():
+def DF_function_handler(mqttc):
     for idf in IDF_list:
         if not IDF_funcs.get(idf): continue
         IDF_data = IDF_funcs.get(idf)()
@@ -114,14 +125,12 @@ def ExceptionHandler(err, ServerURL=None, device_id=None, mqttc=None):
         print(exception)
         time.sleep(1)    
 
+import DAN
+SA_module_name = 'SA'
+if len(sys.argv)>1: SA_module_name = ((sys.argv[1]).split('.'))[0]    
+SA = importlib.import_module(SA_module_name)
 
 if __name__ == '__main__':
-    import DAN
-
-    SA_module_name = 'SA'
-    if len(sys.argv)>1: SA_module_name = ((sys.argv[1]).split('.'))[0]
-    SA = importlib.import_module(SA_module_name)
-
     MQTT_broker = getattr(SA,'MQTT_broker', None)
     MQTT_port = getattr(SA,'MQTT_port', 1883)
     MQTT_User = getattr(SA,'MQTT_User', None)
@@ -152,16 +161,23 @@ if __name__ == '__main__':
     mqttc = None
     if MQTT_broker:
         mqttc = mqtt.Client()
-        MQTT_config(mqttc)
+        MQTT_config(mqttc, MQTT_broker, MQTT_port, MQTT_User, MQTT_PW, MQTT_encryption)
         t = threading.Thread(target=mqttc.loop_forever)
         t.daemon = True 
         t.start()
 
     on_register(result)
 
+    SA_routine =  getattr(SA,'SA_routine', False)
+    SA_routine_process = getattr(SA,'SA_routine_process', None)
+    if SA_routine and SA_routine_process:
+        sa_p = threading.Thread(target=SA.SA_routine_process)
+        sa_p.daemon = True
+        sa_p.start()
+
     while True:
         try:
-            DF_function_handler()
+            DF_function_handler(mqttc)
             if DAN.iottalk_server_disconnect == True:
                 ExceptionHandler('RECONNECT', ServerURL, device_id, mqttc)
             time.sleep(exec_interval)
