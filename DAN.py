@@ -15,8 +15,9 @@ mac_addr = None
 state = 'RESUME'
 
 SelectedDF = []
+iottalk_server_disconnect = None
 def ControlChannel():
-    global state, SelectedDF
+    global state, SelectedDF, iottalk_server_disconnect
     print('[{}] Device state: {}'.format(dt.now().strftime('%Y-%m-%d %H:%M:%S'), state))
     NewSession=requests.Session()
     control_channel_timestamp = None
@@ -44,13 +45,11 @@ def ControlChannel():
                         if STATUS == '1':
                             SelectedDF.append(profile['df_list'][index])
                         index=index+1
+            iottalk_server_disconnect = False
         except Exception as e:
             print ('[{}] Control CH err: {}'.format(dt.now().strftime('%Y-%m-%d %H:%M:%S'), e))
-            if str(e).find('mac_addr not found:') != -1:
-                print('Reg_addr is not found. Try to re-register...')
-                device_registration_with_retry()
-            else:
-                time.sleep(1)    
+            iottalk_server_disconnect = True
+            time.sleep(10)            
 
 def get_mac_addr():
     from uuid import getnode
@@ -96,19 +95,20 @@ def register_device(addr):
     result['server'] = csmapi.ENDPOINT
     return result
 
+
 def device_registration_with_retry(URL=None, addr=None):
+    global iottalk_server_disconnect
     if URL != None:
         csmapi.ENDPOINT = URL
     success = False
     while not success:
-        result = register_device(addr)
-        return result
         try:
             result = register_device(addr)
             success = True
+            iottalk_server_disconnect = False
+            break
         except Exception as e:
-            print ('Attach failed: '),
-            print (e)
+            print ('Attach failed: {}'.format(e)),
         time.sleep(1)
     return result
 
