@@ -1,7 +1,6 @@
 import re, time, json, threading, requests, traceback, sys, importlib
 from datetime import datetime as dt
 import paho.mqtt.client as mqtt
-import paho.mqtt.publish as publish
 
 def df_func_name(df_name):
     return re.sub(r'-', r'_', df_name)
