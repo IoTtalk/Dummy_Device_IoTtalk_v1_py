@@ -167,9 +167,10 @@ if __name__ == '__main__':
 
     on_register(result)
 
-    SA_routine =  getattr(SA,'SA_routine', False)
+    #SA_routine =  getattr(SA,'SA_routine', False)
     SA_routine_process = getattr(SA,'SA_routine_process', None)
-    if SA_routine and SA_routine_process:
+    #if SA_routine and SA_routine_process:
+    if SA_routine_process:    
         sa_p = threading.Thread(target=SA.SA_routine_process)
         sa_p.daemon = True
         sa_p.start()
