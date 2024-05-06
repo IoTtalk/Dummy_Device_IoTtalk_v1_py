@@ -1,11 +1,11 @@
 import random 
 
-ServerURL = '' #For example: 'https://DomainName'
-MQTT_broker = '' # MQTT Broker address, for example: 'DomainName' or None = no MQTT support
+ServerURL = 'URL' #For example: 'https://DomainName'
+MQTT_broker = None # MQTT Broker address, for example: 'DomainName' or None = no MQTT support
 MQTT_port = 1883
 MQTT_encryption = False
-MQTT_User = ''
-MQTT_PW = ''
+MQTT_User = 'ID'
+MQTT_PW = 'PW'
 
 device_model = 'Dummy_Device'
 IDF_list = ['Dummy_Sensor']
