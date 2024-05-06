@@ -49,7 +49,7 @@ def check_df_funcs_exist(IDF_list, ODF_list):
 
 def on_register(result):
     func = getattr(SA, 'on_register', None)
-    print('[{}] Register successfully.'.format(dt.now().strftime('%Y-%m-%d %H:%M:%S')))
+    print(f'[{dt.now().strftime("%Y-%m-%d %H:%M:%S")}] Register successfully. {result["server"]}')
     time.sleep(0.3)
     if func: func(result)
 
@@ -118,7 +118,7 @@ def ExceptionHandler(err, ServerURL=None, device_id=None, mqttc=None):
         print('Device ID is not found. Try to re-register...')
         result = DAN.device_registration_with_retry(ServerURL, device_id)
         if mqttc: reconnect(mqttc)
-        on_register(result)
+        print(f'[{dt.now().strftime("%Y-%m-%d %H:%M:%S")}] {result}')
     else:
         exception = traceback.format_exc()
         print(exception)
@@ -165,16 +165,10 @@ if __name__ == '__main__':
         t.daemon = True 
         t.start()
 
-    on_register(result)
-
-    #SA_routine =  getattr(SA,'SA_routine', False)
-    SA_routine_process = getattr(SA,'SA_routine_process', None)
-    #if SA_routine and SA_routine_process:
-    if SA_routine_process:    
-        sa_p = threading.Thread(target=SA.SA_routine_process)
-        sa_p.daemon = True
-        sa_p.start()
-
+    sa_p = threading.Thread(target=on_register, args=(result,))
+    sa_p.daemon = True
+    sa_p.start()
+    
     while True:
         try:
             DF_function_handler(mqttc)
