@@ -117,7 +117,7 @@ def ExceptionHandler(err, ServerURL=None, device_id=None, mqttc=None):
     elif str(err).find('mac_addr not found:') != -1 or str(err).find('RECONNECT') != -1:
         print('Device ID is not found. Try to re-register...')
         result = DAN.device_registration_with_retry(ServerURL, device_id)
-        if mqttc: reconnect(mqttc)
+        #if mqttc: reconnect(mqttc)
         print(f'[{dt.now().strftime("%Y-%m-%d %H:%M:%S")}] {result}')
     else:
         exception = traceback.format_exc()
@@ -128,6 +128,16 @@ import DAN
 SA_module_name = 'SA'
 if len(sys.argv)>1: SA_module_name = ((sys.argv[1]).split('.'))[0]    
 SA = importlib.import_module(SA_module_name)
+
+def main(ServerURL, device_id, exec_interval, mqttc):
+    while True:
+        try:
+            DF_function_handler(mqttc)
+            if DAN.iottalk_server_disconnect == True:
+                ExceptionHandler('RECONNECT', ServerURL, device_id, mqttc)
+            time.sleep(exec_interval)
+        except BaseException as err:
+            ExceptionHandler(err, ServerURL, device_id, mqttc)
 
 if __name__ == '__main__':
     MQTT_broker = getattr(SA,'MQTT_broker', None)
@@ -149,32 +159,32 @@ if __name__ == '__main__':
     ODF_funcs = {}
     for odf in ODF_list:
         ODF_funcs[odf] = getattr(SA, df_func_name(odf), None)
-
-    DAN.profile['dm_name'] = device_model
+        DAN.profile['dm_name'] = device_model
     DAN.profile['df_list'] = IDF_list + ODF_list
     if device_name: DAN.profile['d_name']= device_name
     if MQTT_broker: DAN.profile['mqtt_enable'] = True
 
     check_df_funcs_exist(IDF_list, ODF_list)
-    result = DAN.device_registration_with_retry(ServerURL, device_id)
+    result = DAN.device_registration_with_retry(ServerURL, device_id)   
+
     mqttc = None
     if MQTT_broker:
         mqttc = mqtt.Client()
         MQTT_config(mqttc, MQTT_broker, MQTT_port, MQTT_User, MQTT_PW, MQTT_encryption)
-        t = threading.Thread(target=mqttc.loop_forever)
-        t.daemon = True 
-        t.start()
-
+    
     sa_p = threading.Thread(target=on_register, args=(result,))
     sa_p.daemon = True
-    sa_p.start()
+    sa_p.start()    
     
-    while True:
+    main_p = threading.Thread(target=main, args=(ServerURL, device_id, exec_interval, mqttc))
+    main_p.daemon = True 
+    main_p.start()
+    
+    if MQTT_broker:
         try:
-            DF_function_handler(mqttc)
-            if DAN.iottalk_server_disconnect == True:
-                ExceptionHandler('RECONNECT', ServerURL, device_id, mqttc)
-            time.sleep(exec_interval)
-        except BaseException as err:
-            ExceptionHandler(err, ServerURL, device_id, mqttc)
-
+            mqttc.loop_forever()
+        except BaseException as err:  
+            ExceptionHandler(err)          
+    else:
+        main_p.join()
+        
