@@ -159,7 +159,7 @@ if __name__ == '__main__':
     ODF_funcs = {}
     for odf in ODF_list:
         ODF_funcs[odf] = getattr(SA, df_func_name(odf), None)
-        DAN.profile['dm_name'] = device_model
+    DAN.profile['dm_name'] = device_model
     DAN.profile['df_list'] = IDF_list + ODF_list
     if device_name: DAN.profile['d_name']= device_name
     if MQTT_broker: DAN.profile['mqtt_enable'] = True
