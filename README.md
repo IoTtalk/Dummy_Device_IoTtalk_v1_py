@@ -1,5 +1,5 @@
 # Dummy_Device
-#### Before using this example, please install the python module 'requests' and 'paho-mqtt' correctly.
+#### Before using this example, please install the python modules 'requests' and 'paho-mqtt' correctly.
 
 
   `pip install requests paho-mqtt`
