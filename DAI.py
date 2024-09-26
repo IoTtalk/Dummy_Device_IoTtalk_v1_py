@@ -5,8 +5,11 @@ import paho.mqtt.client as mqtt
 def df_func_name(df_name):
     return re.sub(r'-', r'_', df_name)
 
-def on_connect(client, userdata, flags, rc):
-    if not rc:
+def on_connect(client, userdata, flags, reason_code, properties):
+    #print(f"Connected with result code: {reason_code}")
+    if reason_code.is_failure:
+        print(f"Failed to connect: {reason_code}. loop_forever() will retry connection")
+    else:
         print('[{}] MQTT broker: {}'.format(dt.now().strftime('%Y-%m-%d %H:%M:%S'), MQTT_broker))
         if ODF_list == []:
             print('ODF_list is not exist.')
@@ -16,9 +19,16 @@ def on_connect(client, userdata, flags, rc):
             topic = '{}//{}'.format(device_id, odf)
             topic_list.append((topic,0))
         if topic_list != []:
-            r = client.subscribe(topic_list)
-            if r[0]: print('Failed to subscribe topics. Error code:{}'.format(r))
-    else: print('Connect to MQTT borker failed. Error code:{}'.format(rc))
+            client.subscribe(topic_list)
+
+def on_subscribe(client, userdata, mid, reason_code_list, properties):
+    # Since we subscribed only for a single channel, reason_code_list contains
+    # a single entry
+    if reason_code_list[0].is_failure:
+        print(f"Broker rejected you subscription: {reason_code_list[0]}")
+    else:
+        #print(f"Broker granted the following QoS: {reason_code_list[0].value}") 
+        pass
 
 def on_disconnect(client, userdata,  rc):
     print('[{}] MQTT disconnected.'.format(dt.now().strftime('%Y-%m-%d %H:%M:%S')))
@@ -36,8 +46,12 @@ def mqtt_pub(client, deviceId, IDF, data):
     topic = '{}//{}'.format(deviceId, IDF)
     sample = [str(dt.today()), data]
     payload  = json.dumps({'samples':[sample]})
-    status = client.publish(topic, payload)
-    if status[0]: print('[{}] Failed in pub: topic:{}, status:{}'.format(dt.now().strftime('%Y-%m-%d %H:%M:%S'), topic, status))
+    msg_info = client.publish(topic, payload)
+    #print(msg_info)
+
+def on_publish(client, userdata, mid, reason_code, properties):
+    if reason_code.is_failure:
+        print(f"Failed to publish: {reason_code}.")
 
 def check_df_funcs_exist(IDF_list, ODF_list):
     for idf in IDF_list:
@@ -53,11 +67,15 @@ def on_register(result):
     time.sleep(0.3)
     if func: func(result)
 
+
+
 def MQTT_config(client, MQTT_broker, MQTT_port, MQTT_User, MQTT_PW, MQTT_encryption):
     client.username_pw_set(MQTT_User, MQTT_PW)
     client.on_connect = on_connect
     client.on_message = on_message
     client.on_disconnect = on_disconnect
+    client.on_subscribe = on_subscribe
+    client.on_publish = on_publish
     if MQTT_encryption: client.tls_set()
     client.connect(MQTT_broker, MQTT_port, keepalive=60)
 
@@ -169,7 +187,7 @@ if __name__ == '__main__':
 
     mqttc = None
     if MQTT_broker:
-        mqttc = mqtt.Client()
+        mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
         MQTT_config(mqttc, MQTT_broker, MQTT_port, MQTT_User, MQTT_PW, MQTT_encryption)
     
     sa_p = threading.Thread(target=on_register, args=(result,))
