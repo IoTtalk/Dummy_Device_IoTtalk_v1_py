@@ -1,8 +1,8 @@
 # Dummy_Device
-#### Before using this example, please install the python modules 'requests' and 'paho-mqtt' correctly.
+#### Before using this example, please install the python modules 'requests' and 'paho-mqtt (~=2.1.0)' correctly.
 
 
-  `pip install requests paho-mqtt`
+  `pip install requests paho-mqtt~=2.1.0`
     
 
 Modify your user-defined code in "SA.py", and execute "DAI.py" to run the DA by `python DAI.py`
