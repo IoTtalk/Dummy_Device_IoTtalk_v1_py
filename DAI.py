@@ -30,7 +30,7 @@ def on_subscribe(client, userdata, mid, reason_code_list, properties):
         #print(f"Broker granted the following QoS: {reason_code_list[0].value}") 
         pass
 
-def on_disconnect(client, userdata,  rc):
+def on_disconnect(client, userdata, disconnect_flags, reason_code, properties):
     print('[{}] MQTT disconnected.'.format(dt.now().strftime('%Y-%m-%d %H:%M:%S')))
 
 def on_message(client, userdata, msg):
