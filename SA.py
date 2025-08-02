@@ -38,7 +38,7 @@ def on_register(r):
         if fixed_time_interval: t_interval = fixed_time_interval
         else: t_interval = (np.random.exponential(1/LAMBDA)*60) # seconds
         for idx in range(1,6):
-            DAI.push('Dummy_Sensor', [random.randint(20, 40), idx, t_interval])         
+            DAI.push('Dummy_Sensor', [random.randint(20, 40), idx, t_interval, device_id])         
             time.sleep(0.05)
         tts = time.time() + t_interval   
 
