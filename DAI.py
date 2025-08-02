@@ -47,7 +47,6 @@ def mqtt_pub(client, deviceId, IDF, data):
     sample = [str(dt.today()), data]
     payload  = json.dumps({'samples':[sample]})
     msg_info = client.publish(topic, payload)
-    #print(msg_info)
 
 def on_publish(client, userdata, mid, reason_code, properties):
     if reason_code.is_failure:
@@ -79,7 +78,10 @@ def MQTT_config(client, MQTT_broker, MQTT_port, MQTT_User, MQTT_PW, MQTT_encrypt
     if MQTT_encryption: client.tls_set()
     client.connect(MQTT_broker, MQTT_port, keepalive=60)
 
+mqttc_singlepush = None
 def push(idf, IDF_data):
+#This function is intended to be used as a standalone module, so variables of MQTT info and device_id in global area cannot be used (because they are only created when __name__ == "__main__").
+    global mqttc_singlepush
     MQTT_broker = getattr(SA,'MQTT_broker', None)
     if MQTT_broker:
         MQTT_port = getattr(SA,'MQTT_port', 1883)
@@ -88,10 +90,11 @@ def push(idf, IDF_data):
         MQTT_encryption = getattr(SA,'MQTT_encryption', None)
         device_id = getattr(SA,'device_id', None)
         if device_id==None: device_id = DAN.get_mac_addr()
-        mqttc = mqtt.Client()
-        MQTT_config(mqttc, MQTT_broker, MQTT_port, MQTT_User, MQTT_PW, MQTT_encryption)
+        if not mqttc_singlepush:
+            mqttc_singlepush = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+            MQTT_config(mqttc_singlepush, MQTT_broker, MQTT_port, MQTT_User, MQTT_PW, MQTT_encryption)
         if type(IDF_data) is not tuple and type(IDF_data) is not list  : IDF_data=[IDF_data]
-        mqtt_pub(mqttc, device_id, idf, IDF_data)
+        mqtt_pub(mqttc_singlepush, device_id, idf, IDF_data)
     else: 
         DAN.push(idf, IDF_data)
 
