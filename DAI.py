@@ -80,7 +80,7 @@ def MQTT_config(client, MQTT_broker, MQTT_port, MQTT_User, MQTT_PW, MQTT_encrypt
 
 mqttc_singlepush = None
 def push(idf, IDF_data):
-#This function is intended to be used as a standalone module, so global variables cannot be used (because they are only created when __name__ == "__main__").
+#This function is intended to be used as a standalone module, so variables in global area cannot be used (because they are only created when __name__ == "__main__").
     global mqttc_singlepush
     MQTT_broker = getattr(SA,'MQTT_broker', None)
     if MQTT_broker:
