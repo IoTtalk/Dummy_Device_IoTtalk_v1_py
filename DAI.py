@@ -88,10 +88,10 @@ def push(idf, IDF_data):
         MQTT_encryption = getattr(SA,'MQTT_encryption', None)
         device_id = getattr(SA,'device_id', None)
         if device_id==None: device_id = DAN.get_mac_addr()
-        mqttc = mqtt.Client()
-        MQTT_config(mqttc, MQTT_broker, MQTT_port, MQTT_User, MQTT_PW, MQTT_encryption)
+        mqttc_1 = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+        MQTT_config(mqttc_1, MQTT_broker, MQTT_port, MQTT_User, MQTT_PW, MQTT_encryption)
         if type(IDF_data) is not tuple and type(IDF_data) is not list  : IDF_data=[IDF_data]
-        mqtt_pub(mqttc, device_id, idf, IDF_data)
+        mqtt_pub(mqttc_1, device_id, idf, IDF_data)
     else: 
         DAN.push(idf, IDF_data)
 
